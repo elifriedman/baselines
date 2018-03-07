@@ -29,7 +29,6 @@ def demo_run():
     saver = tf.train.Saver()
     saver.restore(tf.get_default_session(), fname)
 
-    np.set_printoptions(suppress=True)
     while 1:
         frame = 0
         score = 0
@@ -39,17 +38,15 @@ def demo_run():
         obsvs = []
         rewards = []
         vpreds = []
-        gvfs = []
 
         while 1:
-            a, vpred, gvf = pi.act(stochastic, obs)
+            a, vpred = pi.act(stochastic, obs)
 
             obs, r, done, _ = env.step(a)
 
             obsvs.append(obs)
             rewards.append(r)
             vpreds.append(vpred)
-            gvfs.append((frame, )+ tuple(g for g in gvf))
 
             score += r
             frame += 1
@@ -57,10 +54,6 @@ def demo_run():
             if still_open==False:
                 return
             if not done: continue
-
-            discounted = discount(np.array(rewards), 0.99)
-            np.savetxt(sys.stdout.buffer, np.array(gvfs))
-            np.savetxt(sys.stdout.buffer, np.array(obsvs))
 
             if restart_delay==0:
                 print("score=%0.2f in %i frames" % (score, frame))

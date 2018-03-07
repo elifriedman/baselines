@@ -3,6 +3,7 @@
 from baselines.common.cmd_util import make_mujoco_env, mujoco_arg_parser
 from baselines.common import tf_util as U
 from baselines import logger
+import tensorflow as tf
 
 def train(env_id, num_timesteps, seed, logdir):
     from baselines.ppo1 import mlp_policy, pposgd_simple
