@@ -4,7 +4,7 @@ from baselines.common.cmd_util import make_mujoco_env, mujoco_arg_parser
 from baselines.common import tf_util as U
 from baselines import logger
 
-def train(env_id, num_timesteps, seed):
+def train(env_id, num_timesteps, seed, logdir):
     from baselines.ppo1 import mlp_policy, pposgd_simple
     U.make_session(num_cpu=1).__enter__()
     def policy_fn(name, ob_space, ac_space):
@@ -18,12 +18,20 @@ def train(env_id, num_timesteps, seed):
             optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
             gamma=0.99, lam=0.95, schedule='linear',
         )
+    import os
+    fname = os.path.join(logdir, 'final_state')
+    os.path.join(logdir, 'final_state')
+    saver = tf.train.Saver()
+    saver.save(tf.get_default_session(), fname)
+
     env.close()
 
 def main():
-    args = mujoco_arg_parser().parse_args()
+    parser = mujoco_arg_parser()
+    parser.add_argument('--logdir', help='log directory', type=str, default=None)
+    args = parser.parse_args()
     logger.configure()
-    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed)
+    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed, logdir=args.logdir)
 
 if __name__ == '__main__':
     main()
