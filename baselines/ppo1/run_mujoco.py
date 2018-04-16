@@ -12,13 +12,18 @@ def train(env_id, num_timesteps, seed, logdir):
         return mlp_policy.MlpPolicy(name=name, ob_space=ob_space, ac_space=ac_space,
             hid_size=64, num_hid_layers=2)
     env = make_mujoco_env(env_id, seed)
-    pposgd_simple.learn(env, policy_fn,
-            max_timesteps=num_timesteps,
-            timesteps_per_actorbatch=2048,
-            clip_param=0.2, entcoeff=0.0,
-            optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
-            gamma=0.99, lam=0.95, schedule='linear',
-        )
+    import datetime
+    start_time = datetime.datetime.now()
+    try:
+        pposgd_simple.learn(env, policy_fn,
+                max_timesteps=num_timesteps,
+                timesteps_per_actorbatch=2048,
+                clip_param=0.2, entcoeff=0.0,
+                optim_epochs=10, optim_stepsize=3e-4, optim_batchsize=64,
+                gamma=0.99, lam=0.95, schedule='linear',
+            )
+    except:
+        pass
     import os
     fname = os.path.join(logdir, 'final_state')
     os.path.join(logdir, 'final_state')
@@ -26,6 +31,9 @@ def train(env_id, num_timesteps, seed, logdir):
     saver.save(tf.get_default_session(), fname)
 
     env.close()
+    print()
+    print("Started:", start_time)
+    print("Finished:", datetime.datetime.now())
 
 def main():
     parser = mujoco_arg_parser()

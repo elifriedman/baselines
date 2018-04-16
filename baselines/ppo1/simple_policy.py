@@ -1,7 +1,7 @@
 from baselines.ppo1 import mlp_policy, pposgd_simple
 from baselines.common import set_global_seeds, tf_util as U, discount
 import tensorflow as tf
-import gym, roboschool, os, sys
+import gym, roboschool, os, sys, custom_envs
 import numpy as np
 
 stochastic=True
@@ -15,7 +15,7 @@ def policy_fn(name, ob_space, ac_space):
         ob_space=ob_space, ac_space=ac_space,
         hid_size=64, num_hid_layers=2)
 
-def demo_run():
+def main():
     U.make_session(num_cpu=1).__enter__()
     set_global_seeds(0)
 
@@ -55,6 +55,8 @@ def demo_run():
                 return
             if not done: continue
 
+            print("score=%0.2f in %i frames" % (score, frame))
+            break
             if restart_delay==0:
                 print("score=%0.2f in %i frames" % (score, frame))
                 if still_open!=True:      # not True in multiplayer or non-Roboschool environment
@@ -64,4 +66,4 @@ def demo_run():
             if restart_delay==0: break
 
 if __name__=="__main__":
-    demo_run()
+    main()
