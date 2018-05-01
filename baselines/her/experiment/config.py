@@ -38,6 +38,7 @@ DEFAULT_PARAMS = {
     'batch_size': 256,  # per mpi thread, measured in transitions and reduced to even multiple of chunk_length.
     'n_test_rollouts': 10,  # number of test rollouts per epoch, each consists of rollout_batch_size rollouts
     'test_with_polyak': False,  # run test episodes with the target network
+    'T': 2048,  # episode length
     # exploration
     'random_eps': 0.3,  # percentage of time a random action is taken
     'noise_eps': 0.2,  # std of gaussian noise added to not-completely-random actions as a percentage of max_u
@@ -72,8 +73,8 @@ def prepare_params(kwargs):
         return gym.make(env_name)
     kwargs['make_env'] = make_env
     tmp_env = cached_make_env(kwargs['make_env'])
-    assert hasattr(tmp_env, '_max_episode_steps')
-    kwargs['T'] = tmp_env._max_episode_steps
+    if hasattr(tmp_env, '_max_episode_steps'):
+        kwargs['T'] = tmp_env._max_episode_steps
     tmp_env.reset()
     kwargs['max_u'] = np.array(kwargs['max_u']) if type(kwargs['max_u']) == list else kwargs['max_u']
     kwargs['gamma'] = 1. - 1. / kwargs['T']
@@ -104,7 +105,7 @@ def configure_her(params):
     env = cached_make_env(params['make_env'])
     env.reset()
     def reward_fun(ag_2, g, info):  # vectorized
-        return env.compute_reward(achieved_goal=ag_2, desired_goal=g, info=info)
+        return env.compute_reward(achieved_goal=ag_2, goal=g, info=info)
 
     # Prepare configuration for HER.
     her_params = {
