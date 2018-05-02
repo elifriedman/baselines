@@ -115,9 +115,12 @@ def parse_args():
     return dict_args
 
 
-if __name__ == '__main__':
+def main():
     args = parse_args()
     if MPI.COMM_WORLD.Get_rank() == 0:
         logger.configure()
     # Run actual script.
     run(**args)
+
+if __name__ == '__main__':
+    main()
