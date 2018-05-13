@@ -15,7 +15,7 @@ from mpi4py import MPI
 def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, param_noise, actor, critic,
     normalize_returns, normalize_observations, critic_l2_reg, actor_lr, critic_lr, action_noise,
     popart, gamma, clip_norm, nb_train_steps, nb_rollout_steps, nb_eval_steps, batch_size, memory,
-    tau=0.01, eval_env=None, param_noise_adaption_interval=50):
+    tau=0.01, eval_env=None, param_noise_adaption_interval=50, save_interval=10, load_model=""):
     rank = MPI.COMM_WORLD.Get_rank()
 
     assert (np.abs(env.action_space.low) == env.action_space.high).all()  # we assume symmetric actions.
@@ -42,6 +42,8 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
     with U.single_threaded_session() as sess:
         # Prepare everything.
         agent.initialize(sess)
+        if load_model:
+            saver.restore(sess, os.path.join(logger.get_dir(), load_model))
         sess.graph.finalize()
 
         agent.reset()
@@ -57,6 +59,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
         epoch = 0
         start_time = time.time()
 
+        best = -np.inf
         epoch_episode_rewards = []
         epoch_episode_steps = []
         epoch_episode_eval_rewards = []
@@ -66,6 +69,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
         epoch_qs = []
         epoch_episodes = 0
         for epoch in range(nb_epochs):
+            cycle_rewards = []
             for cycle in range(nb_epoch_cycles):
                 # Perform rollouts.
                 for t_rollout in range(nb_rollout_steps):
@@ -93,6 +97,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                     if done:
                         # Episode done.
                         epoch_episode_rewards.append(episode_reward)
+                        cycle_rewards.append(episode_reward)
                         episode_rewards_history.append(episode_reward)
                         epoch_episode_steps.append(episode_step)
                         episode_reward = 0.
@@ -144,6 +149,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
             stats = agent.get_stats()
             combined_stats = stats.copy()
             combined_stats['rollout/return'] = np.mean(epoch_episode_rewards)
+            combined_stats['cycle/return'] = np.mean(cycle_rewards)
             combined_stats['rollout/return_history'] = np.mean(episode_rewards_history)
             combined_stats['rollout/episode_steps'] = np.mean(epoch_episode_steps)
             combined_stats['rollout/actions_mean'] = np.mean(epoch_actions)
@@ -158,7 +164,7 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
             combined_stats['rollout/actions_std'] = np.std(epoch_actions)
             # Evaluation statistics.
             if eval_env is not None:
-                combined_stats['eval/return'] = eval_episode_rewards
+                combined_stats['eval/return'] = np.mean(eval_episode_rewards)
                 combined_stats['eval/return_history'] = np.mean(eval_episode_rewards_history)
                 combined_stats['eval/Q'] = eval_qs
                 combined_stats['eval/episodes'] = len(eval_episode_rewards)
@@ -189,3 +195,12 @@ def train(env, nb_epochs, nb_epoch_cycles, render_eval, reward_scale, render, pa
                 if eval_env and hasattr(eval_env, 'get_state'):
                     with open(os.path.join(logdir, 'eval_env_state.pkl'), 'wb') as f:
                         pickle.dump(eval_env.get_state(), f)
+
+            if epoch % save_interval == 0:
+                saver.save(tf.get_default_session(), os.path.join(logdir, 'policy_{}'.format(epoch)))
+            
+            if combined_stats["cycle/return"] > best:
+                best = combined_stats["cycle/return"]
+                saver.save(tf.get_default_session(), os.path.join(logdir, 'policy_best'))
+        
+        saver.save(tf.get_default_session(), os.path.join(logdir, 'policy_final'))
