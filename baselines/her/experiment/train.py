@@ -53,8 +53,8 @@ def train(policy, rollout_worker, evaluator,
 
         # record logs
         logger.record_tabular('epoch', epoch)
-        logger.record_tabular('duration_epoch', time.time() - start_poch)
-        logger.record_tabular('duration_total', time.time() - start)
+        logger.record_tabular('duration_epoch', time.time() - start_epoch)
+        logger.record_tabular('duration_total', time.time() - start_time)
         for key, val in evaluator.logs('test'):
             logger.record_tabular(key, mpi_average(val))
         for key, val in rollout_worker.logs('train'):
