@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 import click
 import numpy as np
@@ -33,8 +34,10 @@ def train(policy, rollout_worker, evaluator,
 
     logger.info("Training...")
     best_success_rate = -1
+    start_time = time.time()
     for epoch in range(n_epochs):
         # train
+        start_epoch = time.time()
         rollout_worker.clear_history()
         for _ in range(n_cycles):
             episode = rollout_worker.generate_rollouts()
@@ -50,6 +53,8 @@ def train(policy, rollout_worker, evaluator,
 
         # record logs
         logger.record_tabular('epoch', epoch)
+        logger.record_tabular('duration_epoch', time.time() - start_poch)
+        logger.record_tabular('duration_total', time.time() - start)
         for key, val in evaluator.logs('test'):
             logger.record_tabular(key, mpi_average(val))
         for key, val in rollout_worker.logs('train'):
