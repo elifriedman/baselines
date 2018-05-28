@@ -25,6 +25,7 @@ def run(env_id, seed, noise_type, layer_norm, evaluation, **kwargs):
     # Create envs.
     env = gym.make(env_id)
     env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank)))
+    her_env = hasattr(env, "goal")
 
     if evaluation and rank==0:
         eval_env = gym.make(env_id)
@@ -53,7 +54,8 @@ def run(env_id, seed, noise_type, layer_norm, evaluation, **kwargs):
             raise RuntimeError('unknown noise type "{}"'.format(current_noise_type))
 
     # Configure components.
-    memory = Memory(limit=int(1e6), action_shape=env.action_space.shape, observation_shape=env.observation_space.shape)
+    aux_shape = env.goal.shape if her_env else (0,)
+    memory = Memory(limit=int(1e6), action_shape=env.action_space.shape, observation_shape=env.observation_space.shape, auxiliary_shape=aux_shape)
     critic = Critic(layer_norm=layer_norm)
     actor = Actor(nb_actions, layer_norm=layer_norm)
 
@@ -70,7 +72,7 @@ def run(env_id, seed, noise_type, layer_norm, evaluation, **kwargs):
     if rank == 0:
         start_time = time.time()
     try:
-        training.train(env=env, eval_env=eval_env, param_noise=param_noise,
+        training.train(env=env, her_env=her_env, eval_env=eval_env, param_noise=param_noise,
             action_noise=action_noise, actor=actor, critic=critic, memory=memory, **kwargs)
     except KeyboardInterrupt:
         logger.error("Aborted!")

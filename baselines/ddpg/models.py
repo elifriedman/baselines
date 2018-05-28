@@ -25,7 +25,10 @@ class Actor(Model):
         self.nb_actions = nb_actions
         self.layer_norm = layer_norm
 
-    def __call__(self, obs, reuse=False):
+    def __call__(self, obs, reuse=False, cpu=False):
+        if cpu:
+            dev = tf.device("/cpu:0")
+            dev.__enter__()
         with tf.variable_scope(self.name) as scope:
             if reuse:
                 scope.reuse_variables()
@@ -43,6 +46,8 @@ class Actor(Model):
             
             x = tf.layers.dense(x, self.nb_actions, kernel_initializer=tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3))
             x = tf.nn.tanh(x)
+        if cpu:
+            dev.__exit__()
         return x
 
 
@@ -51,7 +56,10 @@ class Critic(Model):
         super(Critic, self).__init__(name=name)
         self.layer_norm = layer_norm
 
-    def __call__(self, obs, action, reuse=False):
+    def __call__(self, obs, action, reuse=False, cpu=False):
+        if cpu:
+            dev = tf.device("/cpu:0")
+            dev.__enter__()
         with tf.variable_scope(self.name) as scope:
             if reuse:
                 scope.reuse_variables()
@@ -69,6 +77,8 @@ class Critic(Model):
             x = tf.nn.relu(x)
 
             x = tf.layers.dense(x, 1, kernel_initializer=tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3))
+        if cpu:
+            dev.__exit__()
         return x
 
     @property

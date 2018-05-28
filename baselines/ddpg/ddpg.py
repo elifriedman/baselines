@@ -61,7 +61,7 @@ def get_perturbed_actor_updates(actor, perturbed_actor, param_noise_stddev):
 
 
 class DDPG(object):
-    def __init__(self, actor, critic, memory, observation_shape, action_shape, param_noise=None, action_noise=None,
+    def __init__(self, actor, critic, memory, observation_shape, action_shape, aux_shape, param_noise=None, action_noise=None,
         gamma=0.99, tau=0.001, normalize_returns=False, enable_popart=False, normalize_observations=True,
         batch_size=128, observation_range=(-5., 5.), action_range=(-1., 1.), return_range=(-np.inf, np.inf),
         adaptive_param_noise=True, adaptive_param_noise_policy_threshold=.1,
@@ -69,6 +69,7 @@ class DDPG(object):
         # Inputs.
         self.obs0 = tf.placeholder(tf.float32, shape=(None,) + observation_shape, name='obs0')
         self.obs1 = tf.placeholder(tf.float32, shape=(None,) + observation_shape, name='obs1')
+        self.auxiliary_input = tf.placeholder(tf.float32, shape=(None,) + aux_shape, name='aux')
         self.terminals1 = tf.placeholder(tf.float32, shape=(None, 1), name='terminals1')
         self.rewards = tf.placeholder(tf.float32, shape=(None, 1), name='rewards')
         self.actions = tf.placeholder(tf.float32, shape=(None,) + action_shape, name='actions')
@@ -107,6 +108,9 @@ class DDPG(object):
             self.observation_range[0], self.observation_range[1])
         normalized_obs1 = tf.clip_by_value(normalize(self.obs1, self.obs_rms),
             self.observation_range[0], self.observation_range[1])
+
+        noramlized_obs0 = tf.concat([normalized_obs0, self.auxiliary_input], axis=1)
+        noramlized_obs1 = tf.concat([normalized_obs1, self.auxiliary_input], axis=1)
 
         # Return normalization.
         if self.normalize_returns:
@@ -252,12 +256,12 @@ class DDPG(object):
         self.stats_ops = ops
         self.stats_names = names
 
-    def pi(self, obs, apply_noise=True, compute_Q=True):
+    def pi(self, obs, aux, apply_noise=True, compute_Q=True):
         if self.param_noise is not None and apply_noise:
             actor_tf = self.perturbed_actor_tf
         else:
             actor_tf = self.actor_tf
-        feed_dict = {self.obs0: [obs]}
+        feed_dict = {self.obs0: [obs], self.auxiliary_input: [aux]}
         if compute_Q:
             action, q = self.sess.run([actor_tf, self.critic_with_actor_tf], feed_dict=feed_dict)
         else:
@@ -271,9 +275,9 @@ class DDPG(object):
         action = np.clip(action, self.action_range[0], self.action_range[1])
         return action, q
 
-    def store_transition(self, obs0, action, reward, obs1, terminal1):
+    def store_transition(self, obs0, action, reward, obs1, aux, terminal1):
         reward *= self.reward_scale
-        self.memory.append(obs0, action, reward, obs1, terminal1)
+        self.memory.append(obs0, action, reward, obs1, aux, terminal1)
         if self.normalize_observations:
             self.obs_rms.update(np.array([obs0]))
 
@@ -284,6 +288,7 @@ class DDPG(object):
         if self.normalize_returns and self.enable_popart:
             old_mean, old_std, target_Q = self.sess.run([self.ret_rms.mean, self.ret_rms.std, self.target_Q], feed_dict={
                 self.obs1: batch['obs1'],
+                self.auxiliary_input: batch['aux'],
                 self.rewards: batch['rewards'],
                 self.terminals1: batch['terminals1'].astype('float32'),
             })
@@ -305,6 +310,7 @@ class DDPG(object):
         else:
             target_Q = self.sess.run(self.target_Q, feed_dict={
                 self.obs1: batch['obs1'],
+                self.auxiliary_input: batch['aux'],
                 self.rewards: batch['rewards'],
                 self.terminals1: batch['terminals1'].astype('float32'),
             })
@@ -313,6 +319,7 @@ class DDPG(object):
         ops = [self.actor_grads, self.actor_loss, self.critic_grads, self.critic_loss]
         actor_grads, actor_loss, critic_grads, critic_loss = self.sess.run(ops, feed_dict={
             self.obs0: batch['obs0'],
+            self.auxiliary_input: batch['aux'],
             self.actions: batch['actions'],
             self.critic_target: target_Q,
         })
@@ -338,6 +345,7 @@ class DDPG(object):
             self.stats_sample = self.memory.sample(batch_size=self.batch_size)
         values = self.sess.run(self.stats_ops, feed_dict={
             self.obs0: self.stats_sample['obs0'],
+            self.auxiliary_input: self.stats_sample['aux'],
             self.actions: self.stats_sample['actions'],
         })
 
@@ -361,6 +369,7 @@ class DDPG(object):
         })
         distance = self.sess.run(self.adaptive_policy_distance, feed_dict={
             self.obs0: batch['obs0'],
+            self.auxiliary_input: batch['aux'],
             self.param_noise_stddev: self.param_noise.current_stddev,
         })
 

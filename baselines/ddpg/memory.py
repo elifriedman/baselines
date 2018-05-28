@@ -40,7 +40,7 @@ def array_min2d(x):
 
 
 class Memory(object):
-    def __init__(self, limit, action_shape, observation_shape):
+    def __init__(self, limit, action_shape, observation_shape, auxiliary_shape):
         self.limit = limit
 
         self.observations0 = RingBuffer(limit, shape=observation_shape)
@@ -48,6 +48,7 @@ class Memory(object):
         self.rewards = RingBuffer(limit, shape=(1,))
         self.terminals1 = RingBuffer(limit, shape=(1,))
         self.observations1 = RingBuffer(limit, shape=observation_shape)
+        self.auxiliary_input = RingBuffer(limit, shape=auxiliary_shape)
 
     def sample(self, batch_size):
         # Draw such that we always have a proceeding element.
@@ -55,6 +56,7 @@ class Memory(object):
 
         obs0_batch = self.observations0.get_batch(batch_idxs)
         obs1_batch = self.observations1.get_batch(batch_idxs)
+        aux_batch = self.auxiliary_input.get_batch(batch_idxs)
         action_batch = self.actions.get_batch(batch_idxs)
         reward_batch = self.rewards.get_batch(batch_idxs)
         terminal1_batch = self.terminals1.get_batch(batch_idxs)
@@ -62,13 +64,14 @@ class Memory(object):
         result = {
             'obs0': array_min2d(obs0_batch),
             'obs1': array_min2d(obs1_batch),
+            'aux': array_min2d(aux_batch),
             'rewards': array_min2d(reward_batch),
             'actions': array_min2d(action_batch),
             'terminals1': array_min2d(terminal1_batch),
         }
         return result
 
-    def append(self, obs0, action, reward, obs1, terminal1, training=True):
+    def append(self, obs0, action, reward, obs1, aux, terminal1, training=True):
         if not training:
             return
         
@@ -76,6 +79,7 @@ class Memory(object):
         self.actions.append(action)
         self.rewards.append(reward)
         self.observations1.append(obs1)
+        self.auxiliary_input.append(aux)
         self.terminals1.append(terminal1)
 
     @property
