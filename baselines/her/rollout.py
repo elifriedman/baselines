@@ -37,6 +37,7 @@ class RolloutWorker:
 
         self.success_history = deque(maxlen=history_len)
         self.Q_history = deque(maxlen=history_len)
+        self.reward_history = deque(maxlen=history_len)
 
         self.n_episodes = 0
         self.g = np.empty((self.rollout_batch_size, self.dims['g']), np.float32)  # goals
@@ -76,6 +77,7 @@ class RolloutWorker:
         obs, achieved_goals, acts, goals, successes = [], [], [], [], []
         info_values = [np.empty((self.T, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
         Qs = []
+        rewards = np.zeros((self.rollout_batch_size,))
         for t in range(self.T):
             policy_output = self.policy.get_actions(
                 o, ag, self.g,
@@ -102,9 +104,10 @@ class RolloutWorker:
                 try:
                     # We fully ignore the reward here because it will have to be re-computed
                     # for HER.
-                    curr_o_new, _, _, info = self.envs[i].step(u[i])
+                    curr_o_new, r, _, info = self.envs[i].step(u[i])
                     if 'is_success' in info:
                         success[i] = info['is_success']
+                    rewards[i] += r
                     o_new[i] = curr_o_new['observation']
                     ag_new[i] = curr_o_new['achieved_goal']
                     for idx, key in enumerate(self.info_keys):
@@ -144,6 +147,7 @@ class RolloutWorker:
         self.success_history.append(success_rate)
         if self.compute_Q:
             self.Q_history.append(np.mean(Qs))
+        self.reward_history.append(rewards)
         self.n_episodes += self.rollout_batch_size
 
         return convert_episode_to_batch_major(episode)
@@ -153,6 +157,7 @@ class RolloutWorker:
         """
         self.success_history.clear()
         self.Q_history.clear()
+        self.reward_history.clear()
 
     def current_success_rate(self):
         return np.mean(self.success_history)
@@ -171,6 +176,7 @@ class RolloutWorker:
         """
         logs = []
         logs += [('success_rate', np.mean(self.success_history))]
+        logs += [('reward_rate', np.mean(self.reward_history))]
         if self.compute_Q:
             logs += [('mean_Q', np.mean(self.Q_history))]
         logs += [('episode', self.n_episodes)]
