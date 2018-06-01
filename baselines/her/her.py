@@ -20,6 +20,7 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         """episode_batch is {key: array(buffer_size x T x dim_key)}
         """
         T = episode_batch['u'].shape[1]
+        W_dim = episode_batch['info_weights'].shape[2]
         rollout_batch_size = episode_batch['u'].shape[0]
         batch_size = batch_size_in_transitions
 
@@ -32,6 +33,7 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         # Select future time indexes proportional with probability future_p. These
         # will be used for HER replay by substituting in future goals.
         her_indexes = np.where(np.random.uniform(size=batch_size) < future_p)
+        weight_indexes = np.where(np.random.uniform(size=batch_size) < future_p)
         future_offset = np.random.uniform(size=batch_size) * (T - t_samples)
         future_offset = future_offset.astype(int)
         future_t = (t_samples + 1 + future_offset)[her_indexes]
@@ -41,6 +43,9 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         # keep the original goal.
         future_ag = episode_batch['ag'][episode_idxs[her_indexes], future_t]
         transitions['g'][her_indexes] = future_ag
+        new_weights = np.random.rand(len(weight_indexes[0]), W_dim)
+        new_weights = new_weights / new_weights.sum(axis=1).reshape(-1, 1)
+        transitions['info_weights'][weight_indexes] = new_weights
 
         # Reconstruct info dictionary for reward  computation.
         info = {}
