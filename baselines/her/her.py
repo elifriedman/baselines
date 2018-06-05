@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
+def make_sample_her_transitions(replay_strategy, replay_k, reward_fun, weight_fun):
     """Creates a sample function that can be used for HER experience replay.
 
     Args:
@@ -43,8 +43,7 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun):
         # keep the original goal.
         future_ag = episode_batch['ag'][episode_idxs[her_indexes], future_t]
         transitions['g'][her_indexes] = future_ag
-        new_weights = np.random.rand(len(weight_indexes[0]), W_dim)
-        new_weights = new_weights / new_weights.sum(axis=1).reshape(-1, 1)
+        new_weights = weight_fun(len(weight_indexes[0]))
         transitions['info_weights'][weight_indexes] = new_weights
 
         # Reconstruct info dictionary for reward  computation.

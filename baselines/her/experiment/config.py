@@ -106,10 +106,16 @@ def configure_her(params):
     env.reset()
     def reward_fun(ag_2, g, info):  # vectorized
         return env.compute_reward(achieved_goal=ag_2, desired_goal=g, info=info)
+    def weight_fun(size):
+        weights = []
+        for i in range(size):
+            weights.append(env.env.sample_weights())
+        return np.array(weights)
 
     # Prepare configuration for HER.
     her_params = {
         'reward_fun': reward_fun,
+        'weight_fun': weight_fun,
     }
     for name in ['replay_strategy', 'replay_k']:
         her_params[name] = params[name]
