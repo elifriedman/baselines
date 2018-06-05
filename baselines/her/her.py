@@ -33,7 +33,6 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun, weight_fu
         # Select future time indexes proportional with probability future_p. These
         # will be used for HER replay by substituting in future goals.
         her_indexes = np.where(np.random.uniform(size=batch_size) < future_p)
-        weight_indexes = np.where(np.random.uniform(size=batch_size) < future_p)
         future_offset = np.random.uniform(size=batch_size) * (T - t_samples)
         future_offset = future_offset.astype(int)
         future_t = (t_samples + 1 + future_offset)[her_indexes]
@@ -43,8 +42,6 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun, weight_fu
         # keep the original goal.
         future_ag = episode_batch['ag'][episode_idxs[her_indexes], future_t]
         transitions['g'][her_indexes] = future_ag
-        new_weights = weight_fun(len(weight_indexes[0]))
-        transitions['info_weights'][weight_indexes] = new_weights
 
         # Reconstruct info dictionary for reward  computation.
         info = {}
