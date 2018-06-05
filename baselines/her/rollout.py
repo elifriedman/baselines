@@ -43,6 +43,7 @@ class RolloutWorker:
         self.g = np.empty((self.rollout_batch_size, self.dims['g']), np.float32)  # goals
         self.initial_o = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)  # observations
         self.initial_ag = np.empty((self.rollout_batch_size, self.dims['g']), np.float32)  # achieved goals
+        self.initial_w = np.empty((self.rollout_batch_size, self.dims['w']), np.float32)  # achieved goals
         self.reset_all_rollouts()
         self.clear_history()
 
@@ -53,6 +54,7 @@ class RolloutWorker:
         obs = self.envs[i].reset()
         self.initial_o[i] = obs['observation']
         self.initial_ag[i] = obs['achieved_goal']
+        self.initial_w[i] = self.envs[i].env.weights
         self.g[i] = obs['desired_goal']
 
     def reset_all_rollouts(self):
@@ -70,17 +72,19 @@ class RolloutWorker:
         # compute observations
         o = np.empty((self.rollout_batch_size, self.dims['o']), np.float32)  # observations
         ag = np.empty((self.rollout_batch_size, self.dims['g']), np.float32)  # achieved goals
+        w = np.empty((self.rollout_batch_size, self.dims['w']), np.float32)  # weights
         o[:] = self.initial_o
         ag[:] = self.initial_ag
+        w[:] = self.initial_w
 
         # generate episodes
-        obs, achieved_goals, acts, goals, successes = [], [], [], [], []
+        obs, achieved_goals, acts, goals, weights, successes = [], [], [], [], [], []
         info_values = [np.empty((self.T, self.rollout_batch_size, self.dims['info_' + key]), np.float32) for key in self.info_keys]
         Qs = []
         rewards = np.zeros((self.rollout_batch_size,))
         for t in range(self.T):
             policy_output = self.policy.get_actions(
-                o, ag, self.g,
+                o, ag, self.g, w,
                 compute_Q=self.compute_Q,
                 noise_eps=self.noise_eps if not self.exploit else 0.,
                 random_eps=self.random_eps if not self.exploit else 0.,
@@ -110,6 +114,7 @@ class RolloutWorker:
                     rewards[i] += r
                     o_new[i] = curr_o_new['observation']
                     ag_new[i] = curr_o_new['achieved_goal']
+                    w[i] = info['weights']
                     for idx, key in enumerate(self.info_keys):
                         info_values[idx][t, i] = info[key]
                     if self.render:
@@ -124,6 +129,7 @@ class RolloutWorker:
 
             obs.append(o.copy())
             achieved_goals.append(ag.copy())
+            weights.append(w.copy())
             successes.append(success.copy())
             acts.append(u.copy())
             goals.append(self.g.copy())
@@ -136,7 +142,8 @@ class RolloutWorker:
         episode = dict(o=obs,
                        u=acts,
                        g=goals,
-                       ag=achieved_goals)
+                       ag=achieved_goals,
+                       w=weights)
         for key, value in zip(self.info_keys, info_values):
             episode['info_{}'.format(key)] = value
 

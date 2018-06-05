@@ -60,6 +60,7 @@ class DDPG(object):
         self.dimo = self.input_dims['o']
         self.dimg = self.input_dims['g']
         self.dimu = self.input_dims['u']
+        self.dimw = self.input_dims['w']
 
         # Prepare staging area for feeding data to the model.
         stage_shapes = OrderedDict()
@@ -106,7 +107,7 @@ class DDPG(object):
         g = np.clip(g, -self.clip_obs, self.clip_obs)
         return o, g
 
-    def get_actions(self, o, ag, g, noise_eps=0., random_eps=0., use_target_net=False,
+    def get_actions(self, o, ag, g, w, noise_eps=0., random_eps=0., use_target_net=False,
                     compute_Q=False):
         o, g = self._preprocess_og(o, ag, g)
         policy = self.target if use_target_net else self.main
@@ -118,7 +119,8 @@ class DDPG(object):
         feed = {
             policy.o_tf: o.reshape(-1, self.dimo),
             policy.g_tf: g.reshape(-1, self.dimg),
-            policy.u_tf: np.zeros((o.size // self.dimo, self.dimu), dtype=np.float32)
+            policy.u_tf: np.zeros((o.size // self.dimo, self.dimu), dtype=np.float32),
+            policy.w_tf: w.reshape(-1, self.dimw),
         }
 
         ret = self.sess.run(vals, feed_dict=feed)

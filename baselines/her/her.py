@@ -43,8 +43,10 @@ def make_sample_her_transitions(replay_strategy, replay_k, reward_fun, weight_fu
         # keep the original goal.
         future_ag = episode_batch['ag'][episode_idxs[her_indexes], future_t]
         transitions['g'][her_indexes] = future_ag
+
         new_weights = weight_fun(len(weight_indexes[0]))
         transitions['info_weights'][weight_indexes] = new_weights
+        transitions['w'][weight_indexes] = new_weights
 
         # Reconstruct info dictionary for reward  computation.
         info = {}

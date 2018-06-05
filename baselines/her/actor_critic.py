@@ -4,7 +4,7 @@ from baselines.her.util import store_args, nn
 
 class ActorCritic:
     @store_args
-    def __init__(self, inputs_tf, dimo, dimg, dimu, max_u, o_stats, g_stats, hidden, layers,
+    def __init__(self, inputs_tf, dimo, dimg, dimu, dimw, max_u, o_stats, g_stats, hidden, layers,
                  **kwargs):
         """The actor-critic network and related training code.
 
@@ -24,11 +24,12 @@ class ActorCritic:
         self.o_tf = inputs_tf['o']
         self.g_tf = inputs_tf['g']
         self.u_tf = inputs_tf['u']
+        self.w_tf = inputs_tf['w']
 
         # Prepare inputs for actor and critic.
         o = self.o_stats.normalize(self.o_tf)
         g = self.g_stats.normalize(self.g_tf)
-        input_pi = tf.concat(axis=1, values=[o, g])  # for actor
+        input_pi = tf.concat(axis=1, values=[o, g, self.w_tf])  # for actor
 
         # Networks.
         with tf.variable_scope('pi'):
@@ -36,9 +37,9 @@ class ActorCritic:
                 input_pi, [self.hidden] * self.layers + [self.dimu]))
         with tf.variable_scope('Q'):
             # for policy training
-            input_Q = tf.concat(axis=1, values=[o, g, self.pi_tf / self.max_u])
+            input_Q = tf.concat(axis=1, values=[o, g, self.w_tf, self.pi_tf / self.max_u])
             self.Q_pi_tf = nn(input_Q, [self.hidden] * self.layers + [1])
             # for critic training
-            input_Q = tf.concat(axis=1, values=[o, g, self.u_tf / self.max_u])
+            input_Q = tf.concat(axis=1, values=[o, g, self.w_tf, self.u_tf / self.max_u])
             self._input_Q = input_Q  # exposed for tests
             self.Q_tf = nn(input_Q, [self.hidden] * self.layers + [1], reuse=True)
