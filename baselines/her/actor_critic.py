@@ -43,5 +43,5 @@ class ActorCritic:
             # for critic training
             input_Q = tf.concat(axis=1, values=[o, g, self.w_tf, self.u_tf / self.max_u])
             self._input_Q = input_Q  # exposed for tests
-            Q_tf_vec = nn(input_Q, [self.hidden] * self.layers + [1], reuse=True)
+            Q_tf_vec = nn(input_Q, [self.hidden] * self.layers + [dimw], reuse=True)
             self.Q_tf = tf.reduce_sum(Q_tf_vec * self.w_tf, axis=1)
