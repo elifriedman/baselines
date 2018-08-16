@@ -45,13 +45,14 @@ def build_input_maker(env):
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--env_name', help='environment ID', default='BreakoutNoFrameskip-v4')
+    parser.add_argument('--env_name', help='environment ID', type=str, default='BreakoutNoFrameskip-v4')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--discretization', help='# actions', type=int, default=3)
     parser.add_argument('--num_cpu', help='# cpus', type=int, default=1)
     parser.add_argument('--n_timesteps', help='# timesteps', type=int, default=1)
     parser.add_argument('--logdir', help='log directory', type=str, default="logs/")
     parser.add_argument('--save_freq', help='after how many episodes to save', type=int, default=150)
+    parser.add_argument('--replay_k', help='how much augmentation', type=int, default=0)
     args = parser.parse_args()
     set_global_seeds(args.seed)
     logger.configure(dir=args.logdir)
@@ -111,10 +112,22 @@ def main():
             # Take action and update exploration to the newest value
             input_obs = input_maker(obs)
             action = act(input_obs[None], update_eps=exploration.value(t))[0]
-            new_obs, rew, done, _ = env.step(action_choices[action])
+            action = action_choices[action]
+            new_obs, rew, done, _ = env.step(action)
             new_input_obs = input_maker(new_obs)
             # Store transition in the replay buffer.
             replay_buffer.add((input_obs, action, rew, new_input_obs, float(done)))
+            for k in range(args.replay_k):
+                w = env.env.sample_weights()
+                info = {
+                    "weights": w,
+                    "action": action,
+                }
+                rew = env.compute_rewad(obs["achieved_goal", obs["goal"], info)
+                input_obs = input_maker(obs, w)
+                new_input_obs = input_maker(new_obs, w)
+                replay_buffer.add((input_obs, action, rew, new_input_obs, float(done)))
+
             obs = new_obs
 
             episode_rewards[-1] += rew
