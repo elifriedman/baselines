@@ -113,10 +113,12 @@ def main():
 
             episode_rewards[-1] += rew
             if done:
-                if episode_rewards[-1] > best_reward:
-                    act.save(os.path.join(args.logdir, "policy_best.pkl"))
-                    logger.log("Saving new best policy because reward is {}".format(episode_rewards[-1]))
-                    best_reward = episode_rewards[-1]
+                if len(episode_rewards) >= args.save_freq:
+                    mean_reward = np.mean(episode_rewards[-args.save_freq:])
+                    if mean_reward > best_reward:
+                        act.save(os.path.join(args.logdir, "policy_best.pkl"))
+                        logger.log("Saving new best policy because reward is {}".format(episode_rewards[-1]))
+                        best_reward = mean_reward
                 obs = env.reset()
                 episode_rewards.append(0)
 
