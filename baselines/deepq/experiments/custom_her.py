@@ -27,6 +27,19 @@ def model(inpt, num_actions, scope, reuse=False):
         return out
 
 
+def build_input_maker(env):
+    obs = env.reset()
+    shape = obs['achieved_goal'].shape
+    obslen = shape[0] // 2
+    def input_maker(obs, weight=None):
+        obs_actual = obs['observation']
+        weight = obs['achieved_goal'][obslen:] if weight is None else weight
+        goal = obs['desired_goal'][:obslen]
+        return np.concatenate([obs_actual, weight, goal])
+    test = input_maker(obs)
+    return input_maker, test.shape
+
+
 
 
 def main():
@@ -46,11 +59,13 @@ def main():
     with U.make_session(args.num_cpu):
         # Create the environment
         env = gym.make(args.env_name)
+        input_maker, input_shape = build_input_maker(env)
+
         # Create all the functions necessary to train the model
         act, train, update_target, debug = deepq.build_train(
-            make_obs_ph=lambda name: BatchInput(env.observation_space.shape, name=name),
+            make_obs_ph=lambda name: BatchInput(input_shape, name=name),
             q_func=model,
-            num_actions=env.action_space.n,
+            num_actions=args.discretization,
             optimizer=tf.train.AdamOptimizer(learning_rate=5e-4),
         )
         # Create the replay buffer
@@ -75,10 +90,12 @@ def main():
                 break
 
             # Take action and update exploration to the newest value
-            action = act(obs[None], update_eps=exploration.value(t))[0]
+            input_obs = input_maker(obs)
+            action = act(input_obs, update_eps=exploration.value(t))[0]
             new_obs, rew, done, _ = env.step(action_choices[action])
+            new_input_obs = input_maker(new_obs)
             # Store transition in the replay buffer.
-            replay_buffer.add((obs, action, rew, new_obs, float(done)))
+            replay_buffer.add((input_obs, action, rew, new_input_obs, float(done)))
             obs = new_obs
 
             episode_rewards[-1] += rew
