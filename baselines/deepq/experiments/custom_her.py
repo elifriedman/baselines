@@ -124,7 +124,7 @@ def main():
                     update_target()
 
             if done and len(episode_rewards) % args.save_freq == 0:
-                save_state(os.path.join(args.logdir, "policy_{}".format(len(episode_rewards)))
+                save_state(os.path.join(args.logdir, "policy_{}".format(len(episode_rewards))))
                 logger.record_tabular("steps", t)
                 logger.record_tabular("episodes", len(episode_rewards))
                 logger.record_tabular("mean episode reward", round(np.mean(episode_rewards[-101:-1]), 1))
