@@ -125,7 +125,7 @@ def main():
                     "action": action,
                 }
 
-                rew = env.compute_rewad(obs["achieved_goal"], obs["goal"], info)
+                rew = env.compute_reward(obs["achieved_goal"], obs["goal"], info)
                 input_obs = input_maker(obs, w)
                 new_input_obs = input_maker(new_obs, w)
                 replay_buffer.add((input_obs, action, rew, new_input_obs, float(done)))
