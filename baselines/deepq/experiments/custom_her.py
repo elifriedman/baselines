@@ -51,7 +51,7 @@ def main():
     parser.add_argument('--num_cpu', help='# cpus', type=int, default=1)
     parser.add_argument('--n_timesteps', help='# timesteps', type=int, default=1)
     parser.add_argument('--logdir', help='log directory', type=str, default="logs/")
-    parser.add_argument('--save_freq', help='after how many episodes to save', type=int, default=20)
+    parser.add_argument('--save_freq', help='after how many episodes to save', type=int, default=150)
     args = parser.parse_args()
     set_global_seeds(args.seed)
     logger.configure(dir=args.logdir)
@@ -64,12 +64,21 @@ def main():
         input_maker, input_shape = build_input_maker(env)
 
         # Create all the functions necessary to train the model
+        obs_ph = lambda name: BatchInput(input_shape, name=name)
         act, train, update_target, debug = deepq.build_train(
-            make_obs_ph=lambda name: BatchInput(input_shape, name=name),
+            make_obs_ph=obs_ph,
             q_func=model,
             num_actions=args.discretization,
             optimizer=tf.train.AdamOptimizer(learning_rate=5e-4),
         )
+
+        act_params = {
+            "make_obs_ph": obs_ph,
+            "q_func": model,
+            "num_actions": args.discretization
+        }
+        act = ActWrapper(act, act_params)
+
         # Create the replay buffer
         replay_buffer = ReplayBuffer(50000)
         # Create the schedule for exploration starting from 1 (every action is random) down to
@@ -104,7 +113,7 @@ def main():
             episode_rewards[-1] += rew
             if done:
                 if episode_rewards[-1] > best_reward:
-                    save_state(os.path.join(args.logdir, "policy_best"))
+                    act.save(os.path.join(args.logdir, "policy_best.pkl"))
                     logger.log("Saving new best policy because reward is {}".format(episode_rewards[-1]))
                     best_reward = episode_rewards[-1]
                 obs = env.reset()
@@ -124,7 +133,7 @@ def main():
                     update_target()
 
             if done and len(episode_rewards) % args.save_freq == 0:
-                save_state(os.path.join(args.logdir, "policy_{}".format(len(episode_rewards))))
+                act.save(os.path.join(args.logdir, "policy_{}.pkl".format(len(episode_rewards))))
                 logger.record_tabular("steps", t)
                 logger.record_tabular("episodes", len(episode_rewards))
                 logger.record_tabular("mean episode reward", round(np.mean(episode_rewards[-101:-1]), 1))
