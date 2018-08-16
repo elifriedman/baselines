@@ -1,3 +1,4 @@
+import os
 import argparse
 import gym
 import itertools
@@ -10,7 +11,7 @@ import baselines.common.tf_util as U
 from baselines import logger
 from baselines import deepq
 from baselines.deepq.replay_buffer import ReplayBuffer
-from baselines.deepq.utils import BatchInput
+from baselines.deepq.utils import BatchInput, load_state, save_state
 from baselines.common.schedules import LinearSchedule
 from baselines.common import set_global_seeds
 
@@ -50,6 +51,7 @@ def main():
     parser.add_argument('--num_cpu', help='# cpus', type=int, default=1)
     parser.add_argument('--n_timesteps', help='# timesteps', type=int, default=1)
     parser.add_argument('--logdir', help='log directory', type=str, default="logs/")
+    parser.add_argument('--save_freq', help='after how many episodes to save', type=int, default=20)
     args = parser.parse_args()
     set_global_seeds(args.seed)
     logger.configure(dir=args.logdir)
@@ -79,6 +81,7 @@ def main():
         update_target()
 
         episode_rewards = [0.0]
+        best_reward = -np.inf
         obs = env.reset()
         for t in itertools.count():
             if t >= args.n_timesteps:
@@ -100,6 +103,10 @@ def main():
 
             episode_rewards[-1] += rew
             if done:
+                if episode_rewards[-1] > best_reward:
+                    save_state(os.path.join(args.logdir, "policy_best"))
+                    logger.log("Saving new best policy because reward is {}".format(episode_rewards[-1]))
+                    best_reward = episode_rewards[-1]
                 obs = env.reset()
                 episode_rewards.append(0)
 
@@ -116,7 +123,8 @@ def main():
                 if t % 1000 == 0:
                     update_target()
 
-            if done and len(episode_rewards) % 10 == 0:
+            if done and len(episode_rewards) % args.save_freq == 0:
+                save_state(os.path.join(args.logdir, "policy_{}".format(len(episode_rewards)))
                 logger.record_tabular("steps", t)
                 logger.record_tabular("episodes", len(episode_rewards))
                 logger.record_tabular("mean episode reward", round(np.mean(episode_rewards[-101:-1]), 1))
