@@ -1,4 +1,5 @@
 import os
+import time
 import argparse
 import gym
 import itertools
@@ -92,8 +93,14 @@ def main():
         episode_rewards = [0.0]
         best_reward = -np.inf
         obs = env.reset()
+
+        start_time = time.time()
+        epoch_time = time.time()
         for t in itertools.count():
             if t >= args.n_timesteps:
+                act.save(os.path.join(args.logdir, "policy_latest.pkl"))
+                logger.record_tabular("duration_total", time.time() - start_time)
+                logger.record_tabular("duration_epoch", time.time() - epoch_time)
                 logger.record_tabular("steps", t)
                 logger.record_tabular("episodes", len(episode_rewards))
                 logger.record_tabular("mean episode reward", round(np.mean(episode_rewards[-101:-1]), 1))
@@ -135,12 +142,16 @@ def main():
                     update_target()
 
             if done and len(episode_rewards) % args.save_freq == 0:
+                new_epoch_time = time.time()
                 act.save(os.path.join(args.logdir, "policy_{}.pkl".format(len(episode_rewards))))
+                logger.record_tabular("duration_total", new_epoch_time - start_time)
+                logger.record_tabular("duration_epoch", new_epoch_time - epoch_time)
                 logger.record_tabular("steps", t)
                 logger.record_tabular("episodes", len(episode_rewards))
                 logger.record_tabular("mean episode reward", round(np.mean(episode_rewards[-101:-1]), 1))
                 logger.record_tabular("% time spent exploring", int(100 * exploration.value(t)))
                 logger.dump_tabular()
+                epoch_time = new_epoch_time
 
 
 if __name__ == '__main__':
