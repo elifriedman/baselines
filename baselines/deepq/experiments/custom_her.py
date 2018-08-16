@@ -12,6 +12,7 @@ from baselines import logger
 from baselines import deepq
 from baselines.deepq.replay_buffer import ReplayBuffer
 from baselines.deepq.utils import BatchInput, load_state, save_state
+from baselines.deepq.simple import ActWrapper
 from baselines.common.schedules import LinearSchedule
 from baselines.common import set_global_seeds
 
