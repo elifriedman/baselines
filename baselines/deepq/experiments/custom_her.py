@@ -117,13 +117,15 @@ def main():
             new_input_obs = input_maker(new_obs)
             # Store transition in the replay buffer.
             replay_buffer.add((input_obs, action, rew, new_input_obs, float(done)))
+
             for k in range(args.replay_k):
                 w = env.env.sample_weights()
                 info = {
                     "weights": w,
                     "action": action,
                 }
-                rew = env.compute_rewad(obs["achieved_goal", obs["goal"], info)
+
+                rew = env.compute_rewad(obs["achieved_goal"], obs["goal"], info)
                 input_obs = input_maker(obs, w)
                 new_input_obs = input_maker(new_obs, w)
                 replay_buffer.add((input_obs, action, rew, new_input_obs, float(done)))
