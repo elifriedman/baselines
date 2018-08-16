@@ -28,14 +28,16 @@ def model(inpt, num_actions, scope, reuse=False):
 
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--env', help='environment ID', default='BreakoutNoFrameskip-v4')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--discretization', help='# actions', type=int, default=3)
     parser.add_argument('--num_cpu', help='# cpus', type=int, default=1)
+    parser.add_argument('--logdir', help='log directory', type=str, default="logs/")
     args = parser.parse_args()
     set_global_seeds(args.seed)
+    logger.configure(dir=args.logdir)
 
 
     action_choices = np.linspace(-1, 1, args.discretization)
@@ -93,3 +95,7 @@ if __name__ == '__main__':
                 logger.record_tabular("mean episode reward", round(np.mean(episode_rewards[-101:-1]), 1))
                 logger.record_tabular("% time spent exploring", int(100 * exploration.value(t)))
                 logger.dump_tabular()
+
+
+if __name__ == '__main__':
+    main()
