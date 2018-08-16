@@ -91,7 +91,7 @@ def main():
 
             # Take action and update exploration to the newest value
             input_obs = input_maker(obs)
-            action = act(input_obs, update_eps=exploration.value(t))[0]
+            action = act(input_obs[None], update_eps=exploration.value(t))[0]
             new_obs, rew, done, _ = env.step(action_choices[action])
             new_input_obs = input_maker(new_obs)
             # Store transition in the replay buffer.
