@@ -31,7 +31,7 @@ def model(inpt, num_actions, scope, reuse=False):
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--env', help='environment ID', default='BreakoutNoFrameskip-v4')
+    parser.add_argument('--env_name', help='environment ID', default='BreakoutNoFrameskip-v4')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--discretization', help='# actions', type=int, default=3)
     parser.add_argument('--num_cpu', help='# cpus', type=int, default=1)
