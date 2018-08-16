@@ -45,7 +45,7 @@ def main():
     action_choices = np.linspace(-1, 1, args.discretization)
     with U.make_session(args.num_cpu):
         # Create the environment
-        env = gym.make(args.env)
+        env = gym.make(args.env_name)
         # Create all the functions necessary to train the model
         act, train, update_target, debug = deepq.build_train(
             make_obs_ph=lambda name: BatchInput(env.observation_space.shape, name=name),
