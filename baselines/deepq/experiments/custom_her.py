@@ -20,11 +20,11 @@ from baselines.common import set_global_seeds
 
 def model(inpt, num_actions, scope, reuse=False):
     """This model takes as input an observation and returns values of all actions."""
-    n_hid = 256
+    n_hid = 64
     with tf.variable_scope(scope, reuse=reuse):
         out = inpt
-        out = layers.fully_connected(out, num_outputs=n_hid, activation_fn=tf.nn.relu)
-        out = layers.fully_connected(out, num_outputs=n_hid, activation_fn=tf.nn.relu)
+#        out = layers.fully_connected(out, num_outputs=n_hid, activation_fn=tf.nn.relu)
+#        out = layers.fully_connected(out, num_outputs=n_hid, activation_fn=tf.nn.relu)
         out = layers.fully_connected(out, num_outputs=n_hid, activation_fn=tf.nn.relu)
         out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
         return out
