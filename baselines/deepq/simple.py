@@ -40,6 +40,10 @@ class ActWrapper(object):
     def __call__(self, *args, **kwargs):
         return self._act(*args, **kwargs)
 
+    @property
+    def params(self):
+        return self._act_params
+
     def save(self, path=None):
         """Save model to a pickle located at `path`"""
         if path is None:

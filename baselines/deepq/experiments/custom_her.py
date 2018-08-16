@@ -42,8 +42,6 @@ def build_input_maker(env):
     return input_maker, test.shape
 
 
-
-
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--env_name', help='environment ID', default='BreakoutNoFrameskip-v4')
@@ -76,7 +74,8 @@ def main():
         act_params = {
             "make_obs_ph": obs_ph,
             "q_func": model,
-            "num_actions": args.discretization
+            "num_actions": args.discretization,
+            "env": args.env_name,
         }
         act = ActWrapper(act, act_params)
 
