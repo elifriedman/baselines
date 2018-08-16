@@ -35,6 +35,7 @@ def main():
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--discretization', help='# actions', type=int, default=3)
     parser.add_argument('--num_cpu', help='# cpus', type=int, default=1)
+    parser.add_argument('--n_timesteps', help='# timesteps', type=int, default=1)
     parser.add_argument('--logdir', help='log directory', type=str, default="logs/")
     args = parser.parse_args()
     set_global_seeds(args.seed)
@@ -65,6 +66,14 @@ def main():
         episode_rewards = [0.0]
         obs = env.reset()
         for t in itertools.count():
+            if t >= args.n_timesteps:
+                logger.record_tabular("steps", t)
+                logger.record_tabular("episodes", len(episode_rewards))
+                logger.record_tabular("mean episode reward", round(np.mean(episode_rewards[-101:-1]), 1))
+                logger.record_tabular("% time spent exploring", int(100 * exploration.value(t)))
+                logger.dump_tabular()
+                break
+
             # Take action and update exploration to the newest value
             action = act(obs[None], update_eps=exploration.value(t))[0]
             new_obs, rew, done, _ = env.step(action_choices[action])
