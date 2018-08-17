@@ -1,3 +1,4 @@
+import os
 import gym
 import click
 import numpy as np
@@ -26,7 +27,7 @@ def main(policy_file, seed, n_test_rollouts, render, steps_past_done, weight_den
     input_maker, _ = build_input_maker(env)
     action_choices = np.linspace(-1, 1, params['num_actions'])
 
-    data = DataGather(seed, n_test_rollouts, weight_density, start_pos)
+    data = DataGather(seed, n_test_rollouts, weight_density, start_pos, os.path.dirname(policy_file))
 
     while not data.done():
         obs = env.reset()
@@ -64,7 +65,8 @@ import collections
 
             
 class DataGather(object):
-    def __init__(self, seed, num_rollouts, weight_density, start_pos):
+    def __init__(self, seed, num_rollouts, weight_density, start_pos, logdir):
+        self.logdir = logdir
         self.seed = seed
         self.iteration = 0
         self.data = {}
@@ -130,7 +132,7 @@ class DataGather(object):
 
     def log_all(self):
         import csv, json
-        np.save("/usr/local/logs/result_file_{}".format(self.seed), self.data)
+        np.save(os.path.join(self.logdir, "logs/result_file_{}".format(self.seed)), self.data)
 
 if __name__ == '__main__':
     main()
