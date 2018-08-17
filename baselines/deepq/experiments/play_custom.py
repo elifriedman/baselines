@@ -132,7 +132,7 @@ class DataGather(object):
 
     def log_all(self):
         import csv, json
-        np.save(os.path.join(self.logdir, "logs/result_file_{}".format(self.seed)), self.data)
+        np.save(os.path.join(self.logdir, "result_file_{}".format(self.seed)), self.data)
 
 if __name__ == '__main__':
     main()
