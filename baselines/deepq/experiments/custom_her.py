@@ -125,6 +125,7 @@ def main():
                     "action": action,
                 }
 
+                obs["desired_goal"] = obs["achieved_goal"].copy()
                 rew = env.compute_reward(obs["achieved_goal"], obs["desired_goal"], info)
                 input_obs = input_maker(obs, w)
                 new_input_obs = input_maker(new_obs, w)
