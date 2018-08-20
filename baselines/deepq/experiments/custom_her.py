@@ -117,6 +117,7 @@ def main():
             new_input_obs = input_maker(new_obs)
             # Store transition in the replay buffer.
             replay_buffer.add((input_obs, action, rew, new_input_obs, float(done)))
+            episode_rewards[-1] += rew
 
             for k in range(args.replay_k):
                 w = env.env.sample_weights()
@@ -133,7 +134,6 @@ def main():
 
             obs = new_obs
 
-            episode_rewards[-1] += rew
             if done:
                 if len(episode_rewards) >= args.save_freq:
                     mean_reward = np.mean(episode_rewards[-args.save_freq:])
